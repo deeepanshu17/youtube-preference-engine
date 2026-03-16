@@ -1,0 +1,164 @@
+/* ============================================================
+   YRE Badge Styles — Phase 2.1 (Refined Glassmorphism + Accent)
+   ============================================================ */
+
+/* Ensure thumbnails are positioned for overlay children */
+ytd-thumbnail,
+ytd-rich-item-renderer ytd-thumbnail,
+ytd-grid-video-renderer ytd-thumbnail {
+  position: relative;
+}
+
+/* ── Base Container ── */
+.yre-badge-container {
+  font-family: 'YouTube Noto', 'Roboto', Arial, sans-serif;
+  z-index: 999 !important;
+  pointer-events: auto;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+/* ── Fade-in animation ── */
+@keyframes yre-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Absolute Badge (on thumbnail) ── */
+.yre-abs-badge {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: max-content !important;
+  max-width: calc(100% - 12px) !important;
+  height: auto !important;
+
+  /* Heavy Glassmorphism */
+  background: rgba(15, 15, 15, 0.55) !important;
+  backdrop-filter: blur(24px) saturate(1.8) brightness(0.95) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(0.95) !important;
+
+  /* Colored left accent — set dynamically via JS */
+  border-left: 3px solid var(--yre-accent, #46D369) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  cursor: default !important;
+  margin: 0 !important;
+
+  /* Fade-in on inject */
+  animation: yre-fadeIn 0.3s ease-out both;
+
+  /* Layered shadow for glass depth */
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.yre-abs-badge:hover {
+  transform: scale(1.03);
+  background: rgba(20, 20, 20, 0.7) !important;
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Score Line (87% Match) ── */
+.yre-score-line {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+  line-height: 1.1 !important;
+}
+
+.yre-score-number {
+  font-weight: 700 !important;
+  font-size: 1.6rem !important;
+  letter-spacing: -0.02em !important;
+  white-space: nowrap !important;
+}
+
+.yre-match-label {
+  font-weight: 500 !important;
+  font-size: 0.82rem !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  white-space: nowrap !important;
+}
+
+/* ── Reason Line ── */
+.yre-reason-line {
+  font-size: 0.72rem !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.48) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 180px !important;
+  line-height: 1.25 !important;
+  margin-top: 1px !important;
+}
+
+/* ── Inline Fallback Badge ── */
+.yre-inline-badge {
+  background: rgba(15, 15, 15, 0.82) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-left: 3px solid var(--yre-accent, #46D369) !important;
+  padding: 5px 8px !important;
+  border-radius: 5px !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  align-items: flex-start !important;
+  cursor: default !important;
+  margin-top: 6px !important;
+  animation: yre-fadeIn 0.3s ease-out both;
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   ============================================================ */
+html:not([dark]) .yre-abs-badge {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(24px) saturate(1.6) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.6) brightness(1.1) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+html:not([dark]) .yre-abs-badge:hover {
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+html:not([dark]) .yre-match-label {
+  color: rgba(0, 0, 0, 0.50) !important;
+}
+
+html:not([dark]) .yre-reason-line {
+  color: rgba(0, 0, 0, 0.42) !important;
+}
+
+html:not([dark]) .yre-inline-badge {
+  background: rgba(245, 245, 245, 0.92) !important;
+}

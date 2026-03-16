@@ -1,0 +1,41 @@
+{
+    "manifest_version": 3,
+    "name": "YouTube Preference Engine",
+    "version": "2.0.0",
+    "description": "Your personal YouTube recommendation scoring engine. See real Match % badges on Home feed videos based on your local viewing profile.",
+    "permissions": [
+        "storage",
+        "webNavigation"
+    ],
+    "host_permissions": [
+        "*://*.youtube.com/*",
+        "*://www.youtube.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.youtube.com/*",
+                "*://www.youtube.com/*"
+            ],
+            "js": [
+                "utils/storage.js",
+                "utils/extractors.js",
+                "utils/scorer.js",
+                "utils/ui.js",
+                "content.js"
+            ],
+            "css": [
+                "styles/badge.css"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}
