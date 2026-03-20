@@ -48,7 +48,7 @@ Each video gets a sleek glassmorphism badge overlay showing:
 
 1. **Clone** or **download** this repository:
    ```bash
-   git clone https://github.com/your-username/YTExtension.git
+   git clone https://github.com/deeepanshu17/youtube-preference-engine.git
    ```
 2. Open **Chrome** and navigate to:
    ```
@@ -109,6 +109,7 @@ YTExtension/
 │   ├── storage.js         # Profile, session & watch history persistence
 │   ├── extractors.js      # DOM scrapers for watch page & home feed cards
 │   ├── scorer.js          # Weighted heuristic scoring engine
+│   ├── ai_scorer.js       # Chrome Built-in AI enhancement layer
 │   └── ui.js              # Badge creation, injection & cleanup
 ├── styles/
 │   └── badge.css          # Glassmorphism badge styles (dark + light mode)
@@ -231,6 +232,16 @@ Contributions are welcome! To get started:
 3. Commit your changes: `git commit -m "feat: add my feature"`
 4. Push to the branch: `git push origin feature/my-feature`
 5. Open a Pull Request
+
+---
+
+## 🌍 Open Source Contributions
+
+| Project | Contribution | Link |
+|---|---|---|
+| **youtube-preference-engine** | Creator & maintainer — AI-powered Chrome extension for YouTube | [GitHub](https://github.com/deeepanshu17/youtube-preference-engine) |
+
+> *Looking for more contributors! Check the [issues](https://github.com/deeepanshu17/youtube-preference-engine/issues) page or open a PR.*
 
 ---
 

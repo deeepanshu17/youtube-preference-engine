@@ -88,6 +88,32 @@ const YRE_UI = {
     document.querySelectorAll('[data-yre-processed]').forEach(el => {
       delete el.dataset.yreProcessed;
     });
+  },
+
+  updateBadge(cardElement, aiScoreInfo) {
+    const badge = cardElement.querySelector('.yre-badge-container');
+    if (!badge) return;
+
+    let scoreColor;
+    if (aiScoreInfo.score >= 80) scoreColor = '#46D369';       // Green
+    else if (aiScoreInfo.score >= 60) scoreColor = '#F5C518';  // Gold
+    else scoreColor = '#E87C03';                              // Amber
+
+    badge.style.setProperty('--yre-accent', scoreColor);
+
+    const scoreNum = badge.querySelector('.yre-score-number');
+    if (scoreNum) {
+      scoreNum.textContent = `${aiScoreInfo.score}%`;
+      scoreNum.style.color = scoreColor;
+    }
+
+    const reasonLine = badge.querySelector('.yre-reason-line');
+    if (reasonLine) {
+      reasonLine.textContent = aiScoreInfo.reason;
+    }
+
+    badge.title = `${aiScoreInfo.score}% Match — ${aiScoreInfo.reason}`;
+    badge.classList.add('yre-ai-upgraded'); // Apply a CSS animation if desired
   }
 };
 
