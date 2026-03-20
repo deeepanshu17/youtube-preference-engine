@@ -115,6 +115,18 @@ class YouTubeRecommendationExplainer {
                 this.session
             );
             window.YRE_UI.injectBadge(cardData.cardElement, scoreInfo);
+
+            if (window.YRE_AIScorer) {
+                window.YRE_AIScorer.enhanceScore(cardData, this.profile, this.history, this.session)
+                    .then(aiScoreInfo => {
+                        if (aiScoreInfo) {
+                            window.YRE_UI.updateBadge(cardData.cardElement, aiScoreInfo);
+                        }
+                    })
+                    .catch(e => {
+                        console.error('[YRE] AI Enhancement error:', e);
+                    });
+            }
         });
     }
 

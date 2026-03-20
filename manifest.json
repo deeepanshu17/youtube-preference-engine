@@ -24,6 +24,7 @@
                 "utils/storage.js",
                 "utils/extractors.js",
                 "utils/scorer.js",
+                "utils/ai_scorer.js",
                 "utils/ui.js",
                 "content.js"
             ],
