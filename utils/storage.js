@@ -43,6 +43,41 @@ function tokenize(text) {
         .filter(t => t.length > 2 && !STOP_WORDS.has(t));
 }
 
+// --------------- Safe Chrome Storage Wrapper ---------------
+// Prevents "Extension context invalidated" crashes when extension
+// is reloaded while old content scripts are still running.
+function safeChromeStorage(method, ...args) {
+    return new Promise((resolve) => {
+        try {
+            if (!chrome?.storage?.local) {
+                console.warn('[YRE-Storage] Extension context lost, skipping storage call.');
+                resolve(method === 'get' ? {} : undefined);
+                return;
+            }
+            if (method === 'get') {
+                chrome.storage.local.get(...args, (result) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('[YRE-Storage] Storage read error:', chrome.runtime.lastError.message);
+                        resolve({});
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } else if (method === 'set') {
+                chrome.storage.local.set(...args, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('[YRE-Storage] Storage write error:', chrome.runtime.lastError.message);
+                    }
+                    resolve();
+                });
+            }
+        } catch (e) {
+            console.warn('[YRE-Storage] Context invalidated:', e.message);
+            resolve(method === 'get' ? {} : undefined);
+        }
+    });
+}
+
 // --------------- Empty Profile Schema ---------------
 function getEmptyProfile() {
     return {
@@ -69,47 +104,36 @@ const YRE_Storage = {
 
     // ========== INITIALIZATION ==========
     async initialize() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get(
-                [YRE_STORAGE_KEYS.HISTORY, YRE_STORAGE_KEYS.PROFILE],
-                (res) => {
-                    const toSet = {};
-                    const history = res[YRE_STORAGE_KEYS.HISTORY] || [];
+        const res = await safeChromeStorage('get', [YRE_STORAGE_KEYS.HISTORY, YRE_STORAGE_KEYS.PROFILE]);
+        const toSet = {};
+        const history = res[YRE_STORAGE_KEYS.HISTORY] || [];
 
-                    // Always rebuild profile from history to ensure
-                    // case-normalized channels and up-to-date keywords
-                    const profile = getEmptyProfile();
-                    if (history.length > 0) {
-                        profile.meta.migratedFromV1 = true;
-                        profile.watchHistory.totalTracked = history.length;
-                        profile.watchHistory.lastTrackedAt = history[0]?.timestamp || Date.now();
-                        history.forEach(item => {
-                            this._processWatchIntoProfile(profile, item);
-                        });
-                        if (DEBUG) console.log(`[YRE-Storage] Built profile from ${history.length} history items. Channels: ${Object.keys(profile.preferences.topChannels).join(', ')}`);
-                    }
-                    toSet[YRE_STORAGE_KEYS.PROFILE] = profile;
+        // Always rebuild profile from history to ensure
+        // case-normalized channels and up-to-date keywords
+        const profile = getEmptyProfile();
+        if (history.length > 0) {
+            profile.meta.migratedFromV1 = true;
+            profile.watchHistory.totalTracked = history.length;
+            profile.watchHistory.lastTrackedAt = history[0]?.timestamp || Date.now();
+            history.forEach(item => {
+                this._processWatchIntoProfile(profile, item);
+            });
+            if (DEBUG) console.log(`[YRE-Storage] Built profile from ${history.length} history items. Channels: ${Object.keys(profile.preferences.topChannels).join(', ')}`);
+        }
+        toSet[YRE_STORAGE_KEYS.PROFILE] = profile;
 
-                    if (!res[YRE_STORAGE_KEYS.HISTORY]) {
-                        toSet[YRE_STORAGE_KEYS.HISTORY] = [];
-                    }
+        if (!res[YRE_STORAGE_KEYS.HISTORY]) {
+            toSet[YRE_STORAGE_KEYS.HISTORY] = [];
+        }
 
-                    chrome.storage.local.set(toSet, () => {
-                        if (DEBUG) console.log('[YRE-Storage] Initialization complete.');
-                        resolve();
-                    });
-                }
-            );
-        });
+        await safeChromeStorage('set', toSet);
+        if (DEBUG) console.log('[YRE-Storage] Initialization complete.');
     },
 
     // ========== WATCH HISTORY ==========
     async getWatchHistory() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get([YRE_STORAGE_KEYS.HISTORY], (result) => {
-                resolve(result[YRE_STORAGE_KEYS.HISTORY] || []);
-            });
-        });
+        const result = await safeChromeStorage('get', [YRE_STORAGE_KEYS.HISTORY]);
+        return result[YRE_STORAGE_KEYS.HISTORY] || [];
     },
 
     async addWatchedVideo(video) {
@@ -141,11 +165,9 @@ const YRE_Storage = {
         // Update session
         await this._updateSession(video);
 
-        await new Promise((resolve) => {
-            chrome.storage.local.set({
-                [YRE_STORAGE_KEYS.HISTORY]: history,
-                [YRE_STORAGE_KEYS.PROFILE]: profile
-            }, resolve);
+        await safeChromeStorage('set', {
+            [YRE_STORAGE_KEYS.HISTORY]: history,
+            [YRE_STORAGE_KEYS.PROFILE]: profile
         });
 
         if (DEBUG) console.log(`[YRE-Storage] Added to watch history. Total: ${history.length}`);
@@ -154,11 +176,8 @@ const YRE_Storage = {
 
     // ========== PROFILE ==========
     async getProfile() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get([YRE_STORAGE_KEYS.PROFILE], (result) => {
-                resolve(result[YRE_STORAGE_KEYS.PROFILE] || getEmptyProfile());
-            });
-        });
+        const result = await safeChromeStorage('get', [YRE_STORAGE_KEYS.PROFILE]);
+        return result[YRE_STORAGE_KEYS.PROFILE] || getEmptyProfile();
     },
 
     /** Internal: process a single video into profile preferences */
@@ -193,27 +212,21 @@ const YRE_Storage = {
 
     // ========== SESSION ==========
     async getSession() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get([YRE_STORAGE_KEYS.SESSION], (result) => {
-                const session = result[YRE_STORAGE_KEYS.SESSION];
-                const now = Date.now();
+        const result = await safeChromeStorage('get', [YRE_STORAGE_KEYS.SESSION]);
+        const session = result[YRE_STORAGE_KEYS.SESSION];
+        const now = Date.now();
 
-                if (!session || (now - (session.lastActive || 0)) > SESSION_TIMEOUT_MS) {
-                    // Expired or missing — return fresh session
-                    const newSession = {
-                        id: 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + now,
-                        startedAt: now,
-                        lastActive: now,
-                        recentVideos: [] // { videoId, title, channel, timestamp }
-                    };
-                    chrome.storage.local.set({ [YRE_STORAGE_KEYS.SESSION]: newSession }, () => {
-                        resolve(newSession);
-                    });
-                } else {
-                    resolve(session);
-                }
-            });
-        });
+        if (!session || (now - (session.lastActive || 0)) > SESSION_TIMEOUT_MS) {
+            const newSession = {
+                id: 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + now,
+                startedAt: now,
+                lastActive: now,
+                recentVideos: []
+            };
+            await safeChromeStorage('set', { [YRE_STORAGE_KEYS.SESSION]: newSession });
+            return newSession;
+        }
+        return session;
     },
 
     async _updateSession(video) {
@@ -232,31 +245,26 @@ const YRE_Storage = {
             session.recentVideos.shift();
         }
 
-        await new Promise((resolve) => {
-            chrome.storage.local.set({ [YRE_STORAGE_KEYS.SESSION]: session }, resolve);
-        });
+        await safeChromeStorage('set', { [YRE_STORAGE_KEYS.SESSION]: session });
     },
 
     // ========== FEED LOGS ==========
     async logHomeFeedCards(cards) {
         if (!cards || cards.length === 0) return;
-        return new Promise((resolve) => {
-            chrome.storage.local.get([YRE_STORAGE_KEYS.FEED_LOGS], (res) => {
-                let snapshots = res[YRE_STORAGE_KEYS.FEED_LOGS] || [];
-                snapshots.unshift({
-                    timestamp: Date.now(),
-                    count: cards.length,
-                    cards: cards.map(c => ({
-                        id: c.videoId, ch: c.channel,
-                        type: c.isMix ? 'mix' : 'organic'
-                    }))
-                });
-                if (snapshots.length > MAX_FEED_SNAPSHOTS) {
-                    snapshots = snapshots.slice(0, MAX_FEED_SNAPSHOTS);
-                }
-                chrome.storage.local.set({ [YRE_STORAGE_KEYS.FEED_LOGS]: snapshots }, resolve);
-            });
+        const res = await safeChromeStorage('get', [YRE_STORAGE_KEYS.FEED_LOGS]);
+        let snapshots = res[YRE_STORAGE_KEYS.FEED_LOGS] || [];
+        snapshots.unshift({
+            timestamp: Date.now(),
+            count: cards.length,
+            cards: cards.map(c => ({
+                id: c.videoId, ch: c.channel,
+                type: c.isMix ? 'mix' : 'organic'
+            }))
         });
+        if (snapshots.length > MAX_FEED_SNAPSHOTS) {
+            snapshots = snapshots.slice(0, MAX_FEED_SNAPSHOTS);
+        }
+        await safeChromeStorage('set', { [YRE_STORAGE_KEYS.FEED_LOGS]: snapshots });
     }
 };
 

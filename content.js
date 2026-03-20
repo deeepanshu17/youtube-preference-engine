@@ -120,19 +120,26 @@ class YouTubeRecommendationExplainer {
                 this.session
             );
             window.YRE_UI.injectBadge(cardData.cardElement, scoreInfo);
-
-            if (window.YRE_AIScorer) {
-                window.YRE_AIScorer.enhanceScore(cardData, this.profile, this.history, this.session)
-                    .then(aiScoreInfo => {
-                        if (aiScoreInfo) {
-                            window.YRE_UI.updateBadge(cardData.cardElement, aiScoreInfo);
-                        }
-                    })
-                    .catch(e => {
-                        console.error('[YRE] AI Enhancement error:', e);
-                    });
-            }
         });
+
+        // AI enhancement: staggered batch (max 6 cards, 3s apart)
+        if (window.YRE_AIScorer) {
+            const AI_BATCH_LIMIT = 6;
+            const AI_STAGGER_MS = 3000; // 3 seconds between calls
+            const aiCards = cards.slice(0, AI_BATCH_LIMIT);
+
+            aiCards.forEach((cardData, index) => {
+                setTimeout(() => {
+                    window.YRE_AIScorer.enhanceScore(cardData, this.profile, this.history, this.session)
+                        .then(aiScoreInfo => {
+                            if (aiScoreInfo) {
+                                window.YRE_UI.updateBadge(cardData.cardElement, aiScoreInfo);
+                            }
+                        })
+                        .catch(() => {}); // silently skip failures
+                }, index * AI_STAGGER_MS);
+            });
+        }
     }
 
     setupObserver() {
