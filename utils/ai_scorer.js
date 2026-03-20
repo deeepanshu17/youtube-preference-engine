@@ -4,8 +4,9 @@
 // Priority:
 //   1. Chrome Built-in AI (window.ai) — zero-cost, on-device
 //   2. Gemini API (gemini-2.0-flash) — free tier, 15 RPM
-//   3. Graceful fallback — no AI, heuristic scores only
 // ============================================================
+
+const YRE_DEFAULT_GEMINI_KEY = 'AIzaSyBLWhbe3NhJ6gNqRkqqxbStX726JKtPtWw';
 
 const YRE_AIScorer = {
     _session: null,
@@ -43,7 +44,7 @@ const YRE_AIScorer = {
             // Chrome AI not available, try fallback
         }
 
-        // --- Try 2: Gemini API key from storage ---
+        // --- Try 2: User-provided key from storage ---
         try {
             const result = await new Promise(resolve => {
                 chrome.storage.local.get(['yre_gemini_key'], resolve);
@@ -52,28 +53,19 @@ const YRE_AIScorer = {
                 this._geminiKey = result.yre_gemini_key;
                 this._isAvailable = true;
                 this._mode = 'gemini-api';
-                console.log('[YRE AI] ✔️ Gemini API mode (key found in storage)');
+                console.log('[YRE AI] ✔️ Gemini API mode (custom key from storage)');
                 return true;
             }
         } catch (e) {
             // storage error
         }
 
-        // --- Try 3: Check for key in window (set via console for testing) ---
-        if (window.YRE_GEMINI_KEY) {
-            this._geminiKey = window.YRE_GEMINI_KEY;
-            this._isAvailable = true;
-            this._mode = 'gemini-api';
-            console.log('[YRE AI] ✔️ Gemini API mode (key from window.YRE_GEMINI_KEY)');
-            return true;
-        }
-
-        this._isAvailable = false;
-        this._mode = null;
-        console.log('[YRE AI] ❌ No AI backend available. To enable:');
-        console.log('[YRE AI]    1. Get a free key at https://aistudio.google.com/apikey');
-        console.log('[YRE AI]    2. Run in console: YRE_AIScorer.setGeminiKey("YOUR_KEY")');
-        return false;
+        // --- Try 3: Default built-in Gemini key ---
+        this._geminiKey = YRE_DEFAULT_GEMINI_KEY;
+        this._isAvailable = true;
+        this._mode = 'gemini-api';
+        console.log('[YRE AI] ✔️ Gemini API mode (default key)');
+        return true;
     },
 
     // ========== SET GEMINI API KEY ==========
