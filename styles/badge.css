@@ -5,8 +5,27 @@
 /* Ensure thumbnails are positioned for overlay children */
 ytd-thumbnail,
 ytd-rich-item-renderer ytd-thumbnail,
-ytd-grid-video-renderer ytd-thumbnail {
+ytd-grid-video-renderer ytd-thumbnail,
+ytd-video-renderer ytd-thumbnail,
+ytd-reel-item-renderer ytd-thumbnail,
+ytd-compact-video-renderer ytd-thumbnail {
   position: relative;
+}
+
+/* Search result cards: ensure the thumbnail container allows overlay */
+ytd-video-renderer {
+  position: relative;
+}
+
+/* AI-enhanced badge subtle pulse */
+@keyframes yre-aiPulse {
+  0% { box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50% { box-shadow: 0 4px 20px rgba(70,211,105,0.25), inset 0 1px 0 rgba(255,255,255,0.12); }
+  100% { box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
+}
+
+.yre-ai-upgraded {
+  animation: yre-aiPulse 0.6s ease-out 1 !important;
 }
 
 /* ── Base Container ── */

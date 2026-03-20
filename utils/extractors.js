@@ -19,6 +19,15 @@ const YRE_Extractors = {
         return window.location.pathname.startsWith('/watch');
     },
 
+    isSearch() {
+        return window.location.pathname === '/results';
+    },
+
+    // Returns true for any page where we should show match badges
+    isScoringPage() {
+        return this.isHome() || this.isSearch();
+    },
+
     // ========== Watch Page Info ==========
     getCurrentVideoInfo() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -46,7 +55,7 @@ const YRE_Extractors = {
     getRecommendedCards() {
         const results = [];
 
-        // === TYPE 1: Regular video cards ===
+        // === TYPE 1: Regular video cards (Home feed) ===
         document.querySelectorAll('ytd-rich-item-renderer').forEach(card => {
             if (card.dataset.yreProcessed) return;
             const data = this._extractRegularCard(card);
@@ -68,6 +77,35 @@ const YRE_Extractors = {
         });
 
         return results;
+    },
+
+    // ========== Search Results Cards ==========
+    getSearchResultCards() {
+        const results = [];
+
+        // Search results use ytd-video-renderer as the main card type
+        document.querySelectorAll('ytd-video-renderer').forEach(card => {
+            if (card.dataset.yreProcessed) return;
+            const data = this._extractRegularCard(card);
+            if (data) results.push(data);
+        });
+
+        // Also check for reel-shelf and shorts (ytd-reel-item-renderer)
+        document.querySelectorAll('ytd-reel-item-renderer').forEach(card => {
+            if (card.dataset.yreProcessed) return;
+            const data = this._extractRegularCard(card);
+            if (data) results.push(data);
+        });
+
+        return results;
+    },
+
+    // Unified method: get all scoreable cards for the current page
+    getAllScoringCards() {
+        if (this.isSearch()) {
+            return this.getSearchResultCards();
+        }
+        return this.getRecommendedCards();
     },
 
     // ========== REGULAR CARD EXTRACTION ==========
