@@ -61,8 +61,11 @@ class YouTubeRecommendationExplainer {
 
         if (window.YRE_Extractors.isWatch()) {
             this.checkWatchPage();
-        } else if (window.YRE_Extractors.isHome()) {
+        } else if (window.YRE_Extractors.isScoringPage()) {
+            // Works for both Home and Search pages
             window.YRE_UI.clearAllBadges();
+            const pageType = window.YRE_Extractors.isSearch() ? 'Search' : 'Home';
+            console.log(`[YRE] Processing ${pageType} page cards...`);
             setTimeout(() => this.processRecommendedCards(), 800);
         }
     }
@@ -88,16 +91,18 @@ class YouTubeRecommendationExplainer {
     }
 
     processRecommendedCards() {
-        if (!window.YRE_Extractors.isHome()) return;
+        if (!window.YRE_Extractors.isScoringPage()) return;
         if (!this.dataReady) {
             console.warn('[YRE] ⚠️ Data not ready yet, skipping card processing');
             return;
         }
 
-        const cards = window.YRE_Extractors.getRecommendedCards();
+        // Use the unified card extractor — works for Home & Search
+        const cards = window.YRE_Extractors.getAllScoringCards();
         if (cards.length === 0) return;
 
-        console.log(`[YRE] Scoring ${cards.length} cards. Profile has ${Object.keys(this.profile?.preferences?.topChannels || {}).length} channels, ${Object.keys(this.profile?.preferences?.topKeywords || {}).length} keywords`);
+        const pageType = window.YRE_Extractors.isSearch() ? 'Search' : 'Home';
+        console.log(`[YRE] Scoring ${cards.length} ${pageType} cards. Profile has ${Object.keys(this.profile?.preferences?.topChannels || {}).length} channels, ${Object.keys(this.profile?.preferences?.topKeywords || {}).length} keywords`);
 
         // Log first card for debugging
         if (cards.length > 0) {
@@ -134,7 +139,7 @@ class YouTubeRecommendationExplainer {
         if (this.observer) this.observer.disconnect();
 
         this.observer = new MutationObserver(() => {
-            if (!window.YRE_Extractors.isHome()) return;
+            if (!window.YRE_Extractors.isScoringPage()) return;
             if (!this.dataReady) return; // Don't score until data is ready
 
             if (this.processTimeout) clearTimeout(this.processTimeout);
