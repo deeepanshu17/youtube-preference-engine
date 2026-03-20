@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🎯</span>
+      <span class="logo-text">YT Preference Engine</span>
+    </div>
+    <span class="version">v2.0</span>
+  </div>
+
+  <!-- Status Card -->
+  <div class="card" id="status-card">
+    <div class="status-row">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="status-text" id="status-text">Checking...</span>
+    </div>
+    <p class="status-detail" id="status-detail"></p>
+  </div>
+
+  <!-- API Key Section -->
+  <div class="card">
+    <h3>🔑 Gemini API Key</h3>
+    <p class="hint">Free key = AI-powered scoring on every video</p>
+
+    <div class="input-group">
+      <input type="password" id="api-key-input" placeholder="Paste your Gemini API key" spellcheck="false" autocomplete="off">
+      <button id="toggle-key" class="icon-btn" title="Show/hide key">👁️</button>
+    </div>
+
+    <div class="btn-row">
+      <button id="save-btn" class="btn btn-primary">Save Key</button>
+      <button id="clear-btn" class="btn btn-danger">Clear</button>
+    </div>
+
+    <div id="save-msg" class="save-msg"></div>
+  </div>
+
+  <!-- Get Key CTA -->
+  <div class="card cta-card" id="cta-card">
+    <p class="cta-text">Don't have a key? It's <strong>free</strong> and takes 30 seconds:</p>
+    <a href="https://aistudio.google.com/apikey" target="_blank" class="btn btn-cta">
+      🚀 Get Free API Key
+    </a>
+    <p class="cta-steps">
+      1. Click above → Sign in with Google<br>
+      2. Click "Create API Key"<br>
+      3. Copy & paste it above — done!
+    </p>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <h3>📊 Your Profile</h3>
+    <div class="stats-grid">
+      <div class="stat">
+        <span class="stat-value" id="stat-history">—</span>
+        <span class="stat-label">Videos tracked</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="stat-channels">—</span>
+        <span class="stat-label">Channels</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="stat-keywords">—</span>
+        <span class="stat-label">Keywords</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/deeepanshu17/youtube-preference-engine" target="_blank">GitHub</a>
+    <span>·</span>
+    <span>Made with ❤️</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
