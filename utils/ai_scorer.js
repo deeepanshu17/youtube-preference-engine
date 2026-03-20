@@ -3,10 +3,10 @@
 // ============================================================
 // Priority:
 //   1. Chrome Built-in AI (window.ai) — zero-cost, on-device
-//   2. Gemini API (gemini-2.0-flash) — free tier, 15 RPM
+//   2. Gemini API (gemini-2.0-flash) — user's own free key
+//   → Each user gets their own 15 RPM free tier (no shared keys)
+//   → Users add their key via the extension popup (30-second setup)
 // ============================================================
-
-const YRE_DEFAULT_GEMINI_KEY = 'AIzaSyBLWhbe3NhJ6gNqRkqqxbStX726JKtPtWw';
 
 const YRE_AIScorer = {
     _session: null,
@@ -44,7 +44,7 @@ const YRE_AIScorer = {
             // Chrome AI not available, try fallback
         }
 
-        // --- Try 2: User-provided key from storage ---
+        // --- Try 2: User-provided Gemini key from storage ---
         try {
             const result = await new Promise(resolve => {
                 chrome.storage.local.get(['yre_gemini_key'], resolve);
@@ -53,19 +53,18 @@ const YRE_AIScorer = {
                 this._geminiKey = result.yre_gemini_key;
                 this._isAvailable = true;
                 this._mode = 'gemini-api';
-                console.log('[YRE AI] ✔️ Gemini API mode (custom key from storage)');
+                console.log('[YRE AI] ✔️ Gemini API mode (user key from popup)');
                 return true;
             }
         } catch (e) {
             // storage error
         }
 
-        // --- Try 3: Default built-in Gemini key ---
-        this._geminiKey = YRE_DEFAULT_GEMINI_KEY;
-        this._isAvailable = true;
-        this._mode = 'gemini-api';
-        console.log('[YRE AI] ✔️ Gemini API mode (default key)');
-        return true;
+        // --- No AI backend available ---
+        this._isAvailable = false;
+        this._mode = null;
+        console.log('[YRE AI] ℹ️ No AI backend — heuristic scoring only. Add a free Gemini key in the extension popup to unlock AI scoring.');
+        return false;
     },
 
     // ========== SET GEMINI API KEY ==========
