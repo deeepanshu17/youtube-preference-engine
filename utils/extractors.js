@@ -25,7 +25,7 @@ const YRE_Extractors = {
 
     // Returns true for any page where we should show match badges
     isScoringPage() {
-        return this.isHome() || this.isSearch();
+        return this.isHome() || this.isSearch() || this.isWatch();
     },
 
     // ========== Watch Page Info ==========
@@ -76,6 +76,13 @@ const YRE_Extractors = {
             if (data) results.push(data);
         });
 
+        // === TYPE 4: New lockup view model cards (YouTube 2025+ UI) ===
+        document.querySelectorAll('yt-lockup-view-model').forEach(card => {
+            if (card.dataset.yreProcessed) return;
+            const data = this._extractLockupCard(card);
+            if (data) results.push(data);
+        });
+
         return results;
     },
 
@@ -100,10 +107,57 @@ const YRE_Extractors = {
         return results;
     },
 
+    // ========== Sidebar / Related Videos (Watch Page) ==========
+    getSidebarCards() {
+        const results = [];
+        const sidebar = document.querySelector('#related, #secondary');
+
+        // === TYPE 1: Legacy compact video renderer ===
+        document.querySelectorAll('ytd-compact-video-renderer').forEach(card => {
+            if (card.dataset.yreProcessed) return;
+            const data = this._extractRegularCard(card);
+            if (data) {
+                data.isSidebar = true;
+                results.push(data);
+            }
+        });
+
+        // === TYPE 2: New yt-lockup-view-model (YouTube 2025+ sidebar) ===
+        const lockupSelector = sidebar
+            ? 'yt-lockup-view-model'
+            : '#secondary yt-lockup-view-model, #related yt-lockup-view-model';
+        const lockupContainer = sidebar || document;
+        lockupContainer.querySelectorAll('yt-lockup-view-model').forEach(card => {
+            if (card.dataset.yreProcessed) return;
+            const data = this._extractLockupCard(card);
+            if (data) {
+                data.isSidebar = true;
+                results.push(data);
+            }
+        });
+
+        // === TYPE 3: Shorts shelf in sidebar ===
+        if (sidebar) {
+            sidebar.querySelectorAll('ytd-reel-item-renderer').forEach(card => {
+                if (card.dataset.yreProcessed) return;
+                const data = this._extractRegularCard(card);
+                if (data) {
+                    data.isSidebar = true;
+                    results.push(data);
+                }
+            });
+        }
+
+        return results;
+    },
+
     // Unified method: get all scoreable cards for the current page
     getAllScoringCards() {
         if (this.isSearch()) {
             return this.getSearchResultCards();
+        }
+        if (this.isWatch()) {
+            return this.getSidebarCards();
         }
         return this.getRecommendedCards();
     },
@@ -261,6 +315,139 @@ const YRE_Extractors = {
 
         const isVerified = !!(
             card.querySelector('.badge-shape-icon, ytd-badge-supported-renderer')
+        );
+
+        const isShort = !!(
+            href.includes('/shorts/') ||
+            durationText === 'SHORTS' ||
+            (lengthBucket === 'short' && durationText && this._durationToSeconds(durationText) <= 60)
+        );
+
+        return {
+            cardElement: card,
+            videoId,
+            title: title.trim(),
+            channel: channel.trim(),
+            viewsText,
+            publishText,
+            durationText,
+            lengthBucket,
+            isMix,
+            isPartiallyWatched,
+            isVerified,
+            isShort
+        };
+    },
+
+    // ========== LOCKUP CARD EXTRACTION (yt-lockup-view-model — YouTube 2025+ UI) ==========
+    _extractLockupCard(card) {
+        let title = '';
+        let href = '';
+        let videoId = '';
+        let channel = '';
+
+        // --- TITLE ---
+        // Primary: .yt-lockup-metadata-view-model__title
+        const titleLink = card.querySelector('.yt-lockup-metadata-view-model__title, a[href*="/watch"]');
+        if (titleLink) {
+            // Get text from span[role="text"] inside, or aria-label, or innerText
+            const textSpan = titleLink.querySelector('span[role="text"], yt-formatted-string');
+            title = (textSpan ? textSpan.innerText : titleLink.getAttribute('aria-label') || titleLink.innerText || '').trim();
+            href = titleLink.getAttribute('href') || '';
+        }
+
+        // Fallback title: h3 > a
+        if (!title) {
+            const h3Link = card.querySelector('h3 a');
+            if (h3Link) {
+                title = h3Link.getAttribute('title') || h3Link.innerText.trim() || '';
+                href = h3Link.getAttribute('href') || href;
+            }
+        }
+
+        // Fallback title: any a with /watch href
+        if (!title) {
+            const watchLink = card.querySelector('a[href*="/watch"]');
+            if (watchLink) {
+                title = watchLink.getAttribute('aria-label') || watchLink.getAttribute('title') || '';
+                href = watchLink.getAttribute('href') || href;
+            }
+        }
+
+        // If still no href, find from any anchor
+        if (!href) {
+            const anyLink = card.querySelector('a[href*="/watch"]');
+            if (anyLink) href = anyLink.getAttribute('href') || '';
+        }
+
+        // Validate href and extract videoId
+        if (!href || !href.includes('/watch')) return null;
+        const videoIdMatch = href.match(/[?&]v=([^&]+)/);
+        videoId = videoIdMatch ? videoIdMatch[1] : '';
+        if (!videoId) return null;
+
+        // Validate title is not a duration
+        if (this._isDuration(title)) {
+            title = '';
+        }
+
+        // --- CHANNEL ---
+        // Primary: .yt-content-metadata-view-model__metadata-text
+        const metaTexts = card.querySelectorAll('.yt-content-metadata-view-model__metadata-text');
+        if (metaTexts.length > 0) {
+            // First metadata text is typically the channel name
+            channel = metaTexts[0].innerText.trim();
+        }
+
+        // Fallback: ytd-channel-name or any link to /@
+        if (!channel) {
+            const chEl = card.querySelector('ytd-channel-name yt-formatted-string, a[href*="/@"]');
+            if (chEl) channel = chEl.innerText.trim();
+        }
+
+        // --- METADATA: views + publish time ---
+        let viewsText = '';
+        let publishText = '';
+        if (metaTexts.length >= 2) {
+            // Second metadata is views, third is publish time (or combined)
+            viewsText = metaTexts[1].innerText.trim();
+        }
+        if (metaTexts.length >= 3) {
+            publishText = metaTexts[2].innerText.trim();
+        }
+
+        // Try splitting combined "54M views · 1 year ago" format
+        if (viewsText && !publishText && viewsText.includes('·')) {
+            const parts = viewsText.split('·').map(s => s.trim());
+            viewsText = parts[0];
+            publishText = parts[1] || '';
+        }
+
+        // --- DURATION ---
+        const durationEl = card.querySelector(
+            'ytd-thumbnail-overlay-time-status-renderer #text, ' +
+            'ytd-thumbnail-overlay-time-status-renderer span, ' +
+            'badge-shape .badge-shape-wiz__text, ' +
+            '[overlay-style="DEFAULT"] .yt-spec-badge-shape--text'
+        );
+        const durationText = durationEl ? durationEl.innerText.trim() : '';
+        const lengthBucket = this._parseLengthBucket(durationText);
+
+        // --- NATIVE HINTS ---
+        const titleLower = title.toLowerCase();
+        const isMix = !!(
+            titleLower.startsWith('mix -') ||
+            titleLower.startsWith('mix –') ||
+            titleLower.startsWith('mix —') ||
+            /^mix\s*[-–—]/.test(titleLower)
+        );
+
+        const isPartiallyWatched = !!(
+            card.querySelector('ytd-thumbnail-overlay-resume-playback-renderer, #progress, .ytProgressBarLine')
+        );
+
+        const isVerified = !!(
+            card.querySelector('.badge-shape-icon, ytd-badge-supported-renderer, [is-verified]')
         );
 
         const isShort = !!(

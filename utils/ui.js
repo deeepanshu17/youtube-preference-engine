@@ -44,8 +44,45 @@ const YRE_UI = {
     return badge;
   },
 
-  injectBadge(cardElement, scoreInfo) {
-    if (cardElement.querySelector('.yre-badge-container')) return;
+  // Compact badge for sidebar — clean percentage pill
+  createCompactBadge(scoreInfo) {
+    const badge = document.createElement('div');
+    badge.className = 'yre-badge-compact';
+
+    let scoreColor;
+    if (scoreInfo.score >= 80) scoreColor = '#46D369';
+    else if (scoreInfo.score >= 60) scoreColor = '#F5C518';
+    else scoreColor = '#E87C03';
+
+    badge.style.setProperty('--yre-accent', scoreColor);
+    badge.style.color = scoreColor;
+    badge.textContent = `${scoreInfo.score}%`;
+    badge.title = `${scoreInfo.score}% Match — ${scoreInfo.reason}`;
+    return badge;
+  },
+
+  injectBadge(cardElement, scoreInfo, isSidebar = false) {
+    if (cardElement.querySelector('.yre-badge-container, .yre-badge-compact')) return;
+
+    // Sidebar compact badge
+    if (isSidebar) {
+      const thumb = cardElement.querySelector(
+        'ytd-thumbnail, #thumbnail, a#thumbnail, ' +
+        'yt-thumbnail-view-model, .yt-lockup-view-model__content-image, ' +
+        'a.yt-lockup-view-model__content-image'
+      );
+      if (thumb) {
+        thumb.style.position = 'relative';
+        thumb.appendChild(this.createCompactBadge(scoreInfo));
+        cardElement.dataset.yreProcessed = 'true';
+        return;
+      }
+      // Fallback: append to card itself
+      cardElement.style.position = 'relative';
+      cardElement.appendChild(this.createCompactBadge(scoreInfo));
+      cardElement.dataset.yreProcessed = 'true';
+      return;
+    }
 
     // Primary: #overlays (YouTube's native overlay container)
     const overlays = cardElement.querySelector('#overlays');
@@ -84,20 +121,32 @@ const YRE_UI = {
   },
 
   clearAllBadges() {
-    document.querySelectorAll('.yre-badge-container').forEach(b => b.remove());
+    document.querySelectorAll('.yre-badge-container, .yre-badge-compact').forEach(b => b.remove());
     document.querySelectorAll('[data-yre-processed]').forEach(el => {
       delete el.dataset.yreProcessed;
     });
   },
 
   updateBadge(cardElement, aiScoreInfo) {
-    const badge = cardElement.querySelector('.yre-badge-container');
-    if (!badge) return;
-
     let scoreColor;
     if (aiScoreInfo.score >= 80) scoreColor = '#46D369';       // Green
     else if (aiScoreInfo.score >= 60) scoreColor = '#F5C518';  // Gold
     else scoreColor = '#E87C03';                              // Amber
+
+    // Check for compact badge first (sidebar)
+    const compact = cardElement.querySelector('.yre-badge-compact');
+    if (compact) {
+      compact.textContent = `${aiScoreInfo.score}%`;
+      compact.style.color = scoreColor;
+      compact.style.setProperty('--yre-accent', scoreColor);
+      compact.title = `${aiScoreInfo.score}% Match — ${aiScoreInfo.reason}`;
+      compact.classList.add('yre-ai-upgraded');
+      return;
+    }
+
+    // Full badge
+    const badge = cardElement.querySelector('.yre-badge-container');
+    if (!badge) return;
 
     badge.style.setProperty('--yre-accent', scoreColor);
 
@@ -113,7 +162,7 @@ const YRE_UI = {
     }
 
     badge.title = `${aiScoreInfo.score}% Match — ${aiScoreInfo.reason}`;
-    badge.classList.add('yre-ai-upgraded'); // Apply a CSS animation if desired
+    badge.classList.add('yre-ai-upgraded');
   }
 };
 
