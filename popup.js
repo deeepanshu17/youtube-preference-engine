@@ -1,10 +1,24 @@
 // =============================================
-// YRE Popup Script — Manage Gemini API Key
+// YRE Popup Script — Premium UI + Gemini Key
 // =============================================
 
 const STORAGE_KEY = 'yre_gemini_key';
-
 const $ = (sel) => document.querySelector(sel);
+
+// ========== Status Icons (SVG) ==========
+const STATUS_ICONS = {
+    active: `
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="9" stroke="#4ade80" stroke-width="1.5" fill="rgba(74,222,128,0.1)"/>
+            <path d="M7 11.5L9.5 14L15 8.5" stroke="#4ade80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`,
+    inactive: `
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="9" stroke="#fbbf24" stroke-width="1.5" fill="rgba(251,191,36,0.08)"/>
+            <path d="M11 7V12" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="11" cy="14.5" r="1" fill="#fbbf24"/>
+        </svg>`
+};
 
 // ========== Load current state ==========
 document.addEventListener('DOMContentLoaded', async () => {
@@ -12,21 +26,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // — API Key status —
     const key = result[STORAGE_KEY];
-    const dot = $('#status-dot');
+    const statusCard = $('#status-card');
+    const iconWrap = $('#status-icon-wrap');
     const text = $('#status-text');
     const detail = $('#status-detail');
     const ctaCard = $('#cta-card');
 
     if (key && key.length > 10) {
-        dot.className = 'status-dot active';
+        statusCard.classList.add('ai-active');
+        statusCard.classList.remove('ai-inactive');
+        iconWrap.className = 'status-icon-wrap active';
+        iconWrap.innerHTML = STATUS_ICONS.active;
         text.textContent = 'AI Scoring Active';
-        detail.textContent = 'Gemini 2.0 Flash is enhancing your scores';
+        detail.textContent = 'Powered by Gemini 2.0 Flash — enhancing your recommendations';
         $('#api-key-input').value = key;
         ctaCard.classList.add('cta-hidden');
     } else {
-        dot.className = 'status-dot inactive';
-        text.textContent = 'Heuristic Only';
-        detail.textContent = 'Add a Gemini key to unlock AI-powered scoring';
+        statusCard.classList.add('ai-inactive');
+        statusCard.classList.remove('ai-active');
+        iconWrap.className = 'status-icon-wrap inactive';
+        iconWrap.innerHTML = STATUS_ICONS.inactive;
+        text.textContent = 'Smart Scoring Mode';
+        detail.textContent = 'Using heuristic analysis · Add a Gemini key to unlock AI-powered scoring';
         ctaCard.classList.remove('cta-hidden');
     }
 
@@ -91,10 +112,14 @@ $('#save-btn').addEventListener('click', async () => {
         msg.textContent = '✅ Key saved! Reload YouTube to activate AI scoring.';
         msg.className = 'save-msg success';
 
-        // Update status
-        $('#status-dot').className = 'status-dot active';
+        // Update status card
+        const statusCard = $('#status-card');
+        statusCard.classList.add('ai-active');
+        statusCard.classList.remove('ai-inactive');
+        $('#status-icon-wrap').className = 'status-icon-wrap active';
+        $('#status-icon-wrap').innerHTML = STATUS_ICONS.active;
         $('#status-text').textContent = 'AI Scoring Active';
-        $('#status-detail').textContent = 'Gemini 2.0 Flash is enhancing your scores';
+        $('#status-detail').textContent = 'Powered by Gemini 2.0 Flash — enhancing your recommendations';
         $('#cta-card').classList.add('cta-hidden');
 
     } catch (e) {
@@ -112,20 +137,30 @@ $('#clear-btn').addEventListener('click', async () => {
     msg.textContent = '🗑️ Key removed. AI scoring disabled.';
     msg.className = 'save-msg';
 
-    $('#status-dot').className = 'status-dot inactive';
-    $('#status-text').textContent = 'Heuristic Only';
-    $('#status-detail').textContent = 'Add a Gemini key to unlock AI-powered scoring';
+    const statusCard = $('#status-card');
+    statusCard.classList.add('ai-inactive');
+    statusCard.classList.remove('ai-active');
+    $('#status-icon-wrap').className = 'status-icon-wrap inactive';
+    $('#status-icon-wrap').innerHTML = STATUS_ICONS.inactive;
+    $('#status-text').textContent = 'Smart Scoring Mode';
+    $('#status-detail').textContent = 'Using heuristic analysis · Add a Gemini key to unlock AI-powered scoring';
     $('#cta-card').classList.remove('cta-hidden');
 });
 
 // ========== Toggle key visibility ==========
 $('#toggle-key').addEventListener('click', () => {
     const input = $('#api-key-input');
+    const icon = $('#eye-icon');
     if (input.type === 'password') {
         input.type = 'text';
-        $('#toggle-key').textContent = '🔒';
+        icon.innerHTML = `
+            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>
+            <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>`;
     } else {
         input.type = 'password';
-        $('#toggle-key').textContent = '👁️';
+        icon.innerHTML = `
+            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>`;
     }
 });
