@@ -48,31 +48,32 @@ function tokenize(text) {
 // is reloaded while old content scripts are still running.
 function safeChromeStorage(method, ...args) {
     return new Promise((resolve) => {
+        // If the extension has been updated/reloaded, chrome.runtime.id becomes undefined
+        // in old content scripts. Checking this prevents throwing an exception.
+        if (!chrome?.runtime?.id || !chrome?.storage?.local) {
+            resolve(method === 'get' ? {} : undefined);
+            return;
+        }
+
         try {
-            if (!chrome?.storage?.local) {
-                console.warn('[YRE-Storage] Extension context lost, skipping storage call.');
-                resolve(method === 'get' ? {} : undefined);
-                return;
-            }
             if (method === 'get') {
                 chrome.storage.local.get(...args, (result) => {
                     if (chrome.runtime.lastError) {
-                        console.warn('[YRE-Storage] Storage read error:', chrome.runtime.lastError.message);
-                        resolve({});
+                        resolve({}); // Silently swallow read errors
                     } else {
-                        resolve(result);
+                        resolve(result || {});
                     }
                 });
             } else if (method === 'set') {
                 chrome.storage.local.set(...args, () => {
                     if (chrome.runtime.lastError) {
-                        console.warn('[YRE-Storage] Storage write error:', chrome.runtime.lastError.message);
+                        // Silently swallow write errors
                     }
                     resolve();
                 });
             }
         } catch (e) {
-            console.warn('[YRE-Storage] Context invalidated:', e.message);
+            // Silently recover if extension context gets invalidated exactly during this call
             resolve(method === 'get' ? {} : undefined);
         }
     });
