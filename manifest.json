@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "YouTube Preference Engine",
-    "version": "2.0.0",
-    "description": "Your personal YouTube recommendation scoring engine. See real Match % badges on Home feed videos based on your local viewing profile.",
+    "version": "2.1.0",
+    "description": "Your personal YouTube scoring engine. See Match % badges on recommended videos based on your profile before you click.",
     "permissions": [
         "storage",
         "webNavigation"
